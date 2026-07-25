@@ -4,7 +4,9 @@
     "zidManagerToken": "eyJpdiI6Ii82bURkZ3NabWdyWEJSeGo1UnhJYUE9PSIsInZhbHVlIjoiaXlwdHhyMEdUeWhkWXQ1cnpJOGJqVVVxUGJQaUZNbXU1M3lmeDlyb3puZXA5bGloZmNMS1JxTCtLTnZVQjBtaGhSeE13aldCbGQzRnB5ZDBqSDVFZE5IMUowZFdXOG4xTVg0SVk1VEFjeWY4Q0w4UXV1QWZXNnZuQ2FBRW1TZzB2ZDlKUG9GTHBjaHhlaDZKdnpQOWxHV2NKR2NIM25KT2hGZXpZVWlLeEpyTlg3N0dLbERLZGJXK1NLMHJYMm03Q0VDcGVKWlJOVkN4OHl5ZDFpZFhKb1pKdnYvSG5IZ0xOMlBKS2ZHNmdzOGdtUFd3bllzUUh5REIzeWhYQkdtbkduNk1sRjhnS0syWXQxNnRZRjgvR3c9PSIsIm1hYyI6Ijk2M2RiNTk2NDUzYTQwNjQyZTU0ZTUxOWE2NjQ0ZjI5NWYwOTU4YzgwZGVkY2U4MzhjNzA0ZDg3YWNjZWYwNTEiLCJ0YWciOiIifQ==",
     "zidAuthorizationToken": "",
     "autoSyncEnabled": true,
-    "totalGramsStore": 10000
+    "totalGramsStore": 9988,
+    "processedOrderIds": [],
+    "locationId": "798d9182-d0ce-48a5-a35a-95674006774e"
   },
   "products": [
     {
@@ -59,6 +61,12 @@
     }
   ],
   "logs": [
+    {
+      "id": "log-1784969173039",
+      "timestamp": "2026-07-25T08:46:13.039Z",
+      "type": "AUTO_ORDER_DEDUCT",
+      "message": "⚡️ تم خصم 12 جرام. المخزون المتبقي حالياً بالخزان: 9988 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
+    },
     {
       "id": "log-1784967135942",
       "timestamp": "2026-07-25T08:12:15.942Z",
