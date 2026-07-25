@@ -155,14 +155,19 @@ const server = http.createServer(async (req, res) => {
   }
 
   // Webhook Receiver
-  if (urlParts === '/api/salla/webhook' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', () => {
-      console.log('[Salla Webhook Event Received]');
-      return sendJson(200, { success: true });
-    });
-    return;
+  if (urlParts === '/api/salla/webhook') {
+    if (req.method === 'GET') {
+      return sendJson(200, { ok: true, message: 'Salla Webhook Endpoint is Active & Ready' });
+    }
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        console.log('[Salla Webhook Event Received]');
+        return sendJson(200, { success: true });
+      });
+      return;
+    }
   }
 
   // Serve static files
