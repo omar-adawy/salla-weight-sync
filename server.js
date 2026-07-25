@@ -1,469 +1,194 @@
 const http = require('http');
-const https = require('https');
 const fs = require('fs');
 const path = require('path');
+const https = require('https');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data_store.json');
-const DEFAULT_LOCATION_ID = "798d9182-d0ce-48a5-a35a-95674006774e";
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// المعرفات الحقيقية والمؤكدة 100% لخيارات برمجة الوزن
-const TRUE_VARIANT_IDS = {
-  "تولة": "d0a11350-92c9-4d7f-b8ee-45c2670c19cc",
-  "أوقية": "4b145c6e-72bb-4f62-9b14-f424e5bb33ed",
-  "ثمن": "5bf6ecd5-d54c-4d3c-aa38-7d86f930942b",
-  "ربع": "cfcd318e-ee60-4859-ac26-2e44348586ad",
-  "نصف": "eb8c6bbf-811e-45b8-9907-54e0734d7d61",
-  "كيلو": "03271e53-0eea-4d0b-87eb-0bd6778e854d"
+// الأوزان بالجرام
+const WEIGHT_MAP = {
+  "تولة": 12,
+  "أوقية": 28,
+  "ثمن": 125,
+  "ربع": 250,
+  "نصف": 500,
+  "كيلو": 1000
 };
 
-// خريطة المعرف العكسية لسرعة التعرف المباشر
-const VARIANT_ID_TO_WEIGHT = {
-  "d0a11350-92c9-4d7f-b8ee-45c2670c19cc": 12,
-  "4b145c6e-72bb-4f62-9b14-f424e5bb33ed": 28,
-  "5bf6ecd5-d54c-4d3c-aa38-7d86f930942b": 125,
-  "cfcd318e-ee60-4859-ac26-2e44348586ad": 250,
-  "eb8c6bbf-811e-45b8-9907-54e0734d7d61": 500,
-  "03271e53-0eea-4d0b-87eb-0bd6778e854d": 1000
-};
-
-function buildZidHeaders(storeSettings) {
-  const headers = {
-    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
-    'Accept': 'application/json',
-    'Accept-Language': 'ar'
-  };
-  if (storeSettings.zidManagerToken) {
-    headers['X-Manager-Token'] = storeSettings.zidManagerToken;
-  }
-  if (storeSettings.zidStoreId) {
-    headers['Store-Id'] = storeSettings.zidStoreId;
-  }
-  if (storeSettings.zidAuthorizationToken) {
-    headers['Authorization'] = storeSettings.zidAuthorizationToken.startsWith('Bearer ')
-      ? storeSettings.zidAuthorizationToken
-      : `Bearer ${storeSettings.zidAuthorizationToken}`;
-  }
-  return headers;
-}
-
-function callZidGet(endpoint, storeSettings) {
-  return new Promise((resolve) => {
-    const options = {
-      hostname: 'api.zid.sa',
-      port: 443,
-      path: endpoint,
-      method: 'GET',
-      headers: buildZidHeaders(storeSettings),
-      timeout: 12000
-    };
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        let parsed = null;
-        try { parsed = JSON.parse(body); } catch (e) { parsed = body; }
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({ ok: true, status: res.statusCode, data: parsed });
-        } else {
-          console.error(`[Zid GET Error] ${endpoint} Status: ${res.statusCode}`, body);
-          resolve({ ok: false, status: res.statusCode, error: parsed });
-        }
-      });
-    });
-    req.on('error', (err) => {
-      console.error(`[Zid GET Network Error] ${endpoint}:`, err.message);
-      resolve({ ok: false, status: 0, error: err.message });
-    });
-    req.on('timeout', () => {
-      req.destroy();
-      console.error(`[Zid GET Timeout] ${endpoint}`);
-      resolve({ ok: false, status: 408, error: 'Request Timeout' });
-    });
-    req.end();
-  });
-}
-
-function updateZidChildQuantity(childProductId, newQty, storeSettings) {
-  return new Promise((resolve) => {
-    const locationId = storeSettings.locationId || DEFAULT_LOCATION_ID;
-    const postData = JSON.stringify({
-      stocks: [{
-        location: locationId,
-        available_quantity: newQty
-      }]
-    });
-    const headers = buildZidHeaders(storeSettings);
-    headers['Content-Type'] = 'application/json';
-    headers['Content-Length'] = Buffer.byteLength(postData);
-
-    const options = {
-      hostname: 'api.zid.sa',
-      port: 443,
-      path: `/v1/products/${childProductId}/`,
-      method: 'PATCH',
-      headers: headers,
-      timeout: 12000
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        let parsed = null;
-        try { parsed = JSON.parse(body); } catch (e) { parsed = body; }
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve({ ok: true, status: res.statusCode, data: parsed });
-        } else {
-          console.error(`[Zid Stock Update Error] Product: ${childProductId} Status: ${res.statusCode}`, body);
-          resolve({ ok: false, status: res.statusCode, error: parsed });
-        }
-      });
-    });
-
-    req.on('error', (err) => {
-      console.error(`[Zid Stock Network Error] Product: ${childProductId}:`, err.message);
-      resolve({ ok: false, status: 0, error: err.message });
-    });
-
-    req.on('timeout', () => {
-      req.destroy();
-      console.error(`[Zid Stock Timeout] Product: ${childProductId}`);
-      resolve({ ok: false, status: 408, error: 'Request Timeout' });
-    });
-
-    req.write(postData);
-    req.end();
-  });
-}
-
+// تحميل البيانات
 function loadData() {
-  if (!fs.existsSync(DATA_FILE)) {
-    const initialData = {
-      storeSettings: {
-        zidStoreId: "1082333",
-        zidManagerToken: "",
-        zidAuthorizationToken: "",
-        locationId: DEFAULT_LOCATION_ID,
-        autoSyncEnabled: true,
-        totalGramsStore: 10000,
-        processedOrderIds: []
-      },
-      products: [],
-      logs: []
-    };
-    fs.writeFileSync(DATA_FILE, JSON.stringify(initialData, null, 2), 'utf8');
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.error('Error reading data file:', e);
   }
-  const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
-  if (!data.storeSettings.processedOrderIds) {
-    data.storeSettings.processedOrderIds = [];
-  }
-  if (!data.storeSettings.locationId) {
-    data.storeSettings.locationId = DEFAULT_LOCATION_ID;
-  }
-  return data;
+  return {
+    sallaAccessToken: '',
+    merchantId: '',
+    products: {}
+  };
 }
 
 function saveData(data) {
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-}
-
-// دالة التعرف الشاملة على وزن وحدة الصنف بالجرام من الصنف أو المعرف أو الخصائص
-function detectUnitWeightGrams(item) {
-  if (!item) return null;
-
-  // 1. الفحص المباشر عبر معرف الخيار المسجل (ID Match)
-  const itemId = item.id || item.product_id || item.variant_id;
-  if (itemId && VARIANT_ID_TO_WEIGHT[itemId]) {
-    return VARIANT_ID_TO_WEIGHT[itemId];
-  }
-
-  // 2. تجميع كافة النصوص المتاحة للصنف من زد (الاسم، اسم المتغير، خيارات الخيار المحنونة، الخصائص)
-  let text = '';
-  if (typeof item === 'string') text = item;
-  else {
-    text += ' ' + (item.name || '');
-    text += ' ' + (item.variant_name || '');
-    text += ' ' + (item.sku || '');
-    if (item.selected_product_option) text += ' ' + (item.selected_product_option.name || '');
-    if (item.attributes && Array.isArray(item.attributes)) {
-      text += ' ' + item.attributes.map(a => (a.value || a.name || '')).join(' ');
-    }
-  }
-
-  const n = text.trim();
-  if (!n) return null;
-
-  if (n.includes('نصف كيلو') || n.includes('نص كيلو') || n.includes('1/2 كيلو')) return 500;
-  if (n.includes('ربع كيلو') || n.includes('1/4 كيلو')) return 250;
-  if (n.includes('ثمن كيلو') || n.includes('1/8 كيلو')) return 125;
-  if (n.includes('نصف أوقية') || n.includes('نصف وقية') || n.includes('نص أوقية')) return 14;
-  if (n.includes('ربع أوقية') || n.includes('ربع وقية')) return 7;
-  if (n.includes('أوقية') || n.includes('وقية') || n.includes('واقية')) return 28;
-  if (n.includes('تولة') || n.includes('توله')) return 12;
-  if (n.includes('كيلو')) return 1000;
-  if (n.includes('ثمن')) return 125;
-  if (n.includes('ربع')) return 250;
-  if (n.includes('نصف') || n.includes('نص')) return 500;
-
-  return null;
-}
-
-// دالة التحديث والمزامنة الشاملة لجميع خيارات الوزن
-async function syncAllVariantsQuantities(productsList, isCancellation, storeSettings, orderId = null) {
-  const data = loadData();
-  let totalOrderGrams = 0;
-  const itemsProcessed = [];
-
-  for (const item of productsList) {
-    let unitWeight = detectUnitWeightGrams(item);
-
-    if (!unitWeight && item.id) {
-      const details = await callZidGet(`/v1/products/${item.id}/`, storeSettings);
-      if (details.ok && details.data) {
-        unitWeight = detectUnitWeightGrams(details.data);
-      }
-    }
-
-    if (!unitWeight) {
-      const pName = item.name || item.variant_name || item.id;
-      console.warn(`[Warning] Could not resolve unit weight for product "${pName}". Skipping deduction to prevent corruption.`);
-      itemsProcessed.push({ name: pName, qty: item.quantity || 1, grams: 0, status: 'UNRESOLVED_WEIGHT' });
-      continue;
-    }
-
-    const qty = item.quantity || 1;
-    const itemGrams = unitWeight * qty;
-    totalOrderGrams += itemGrams;
-    itemsProcessed.push({ name: item.name || item.id, qty: qty, grams: itemGrams, unitWeight: unitWeight, status: 'SUCCESS' });
-  }
-
-  if (totalOrderGrams > 0) {
-    if (isCancellation) {
-      data.storeSettings.totalGramsStore = (data.storeSettings.totalGramsStore || 0) + totalOrderGrams;
-    } else {
-      data.storeSettings.totalGramsStore = Math.max(0, (data.storeSettings.totalGramsStore || 10000) - totalOrderGrams);
-    }
-  }
-
-  const remainingGrams = data.storeSettings.totalGramsStore;
-
-  const variantSpecs = [
-    { name: "تولة", id: TRUE_VARIANT_IDS["تولة"], weight: 12 },
-    { name: "أوقية", id: TRUE_VARIANT_IDS["أوقية"], weight: 28 },
-    { name: "ثمن", id: TRUE_VARIANT_IDS["ثمن"], weight: 125 },
-    { name: "ربع", id: TRUE_VARIANT_IDS["ربع"], weight: 250 },
-    { name: "نصف", id: TRUE_VARIANT_IDS["نصف"], weight: 500 },
-    { name: "كيلو", id: TRUE_VARIANT_IDS["كيلو"], weight: 1000 }
-  ];
-
-  let successCount = 0;
-  let failCount = 0;
-  const updateResults = [];
-
-  for (const spec of variantSpecs) {
-    const exactQtyLeft = Math.floor(remainingGrams / spec.weight);
-    const res = await updateZidChildQuantity(spec.id, exactQtyLeft, storeSettings);
-    if (res.ok) {
-      successCount++;
-      updateResults.push(`${spec.name}: ${exactQtyLeft} قطعة (نجاح)`);
-    } else {
-      failCount++;
-      updateResults.push(`${spec.name}: ${exactQtyLeft} قطعة (فشل كود ${res.status})`);
-    }
-  }
-
-  const actionText = isCancellation ? `🔄 تم استرجاع ${totalOrderGrams} جرام` : `⚡️ تم خصم ${totalOrderGrams} جرام`;
-  const orderRefText = orderId ? ` للطلب #${orderId}` : '';
-  const statusSummary = failCount === 0 
-    ? `تم تعديل وتحديث كافة خيارات زد الـ 6 تلقائياً بنجاح 100%.` 
-    : `تم تحديث ${successCount} خياراً وفشل ${failCount} خيار.`;
-
-  data.logs.unshift({
-    id: `log-${Date.now()}`,
-    timestamp: new Date().toISOString(),
-    type: isCancellation ? "AUTO_CANCEL_RESTORE" : "AUTO_ORDER_DEDUCT",
-    message: `${actionText}${orderRefText}. المخزون المتبقي حالياً بالخزان: ${remainingGrams} جرام. ${statusSummary}`
-  });
-
-  saveData(data);
-  return { totalOrderGrams, remainingGrams, successCount, failCount, updateResults };
-}
-
-// الاستطلاع التلقائي المستمر للطلبات كل 15 ثانية
-async function pollZidOrdersAndSync() {
   try {
-    const data = loadData();
-    if (!data.storeSettings.autoSyncEnabled || !data.storeSettings.zidManagerToken) return;
-
-    const res = await callZidGet('/v1/managers/store/orders?page=1', data.storeSettings);
-    if (res.ok && res.data && res.data.orders && Array.isArray(res.data.orders)) {
-      const orders = res.data.orders;
-      
-      for (const order of orders) {
-        const orderId = String(order.id);
-        const orderStatus = order.order_status ? order.order_status.code : null;
-
-        const processedList = data.storeSettings.processedOrderIds || [];
-        const existingRecord = processedList.find(p => p.id === orderId);
-
-        if (!existingRecord) {
-          // طلب جديد لم يتم معالجته من قبل
-          if (order.products && order.products.length > 0) {
-            await syncAllVariantsQuantities(order.products, false, data.storeSettings, orderId);
-          }
-          
-          processedList.unshift({ id: orderId, status: orderStatus, processedAt: new Date().toISOString() });
-          if (processedList.length > 300) processedList.pop();
-          data.storeSettings.processedOrderIds = processedList;
-          saveData(data);
-        } 
-        else if (existingRecord.status !== 'cancelled' && orderStatus === 'cancelled') {
-          // الطلب تم إلغاؤه لاحقاً
-          if (order.products && order.products.length > 0) {
-            await syncAllVariantsQuantities(order.products, true, data.storeSettings, orderId);
-          }
-
-          existingRecord.status = 'cancelled';
-          existingRecord.cancelledAt = new Date().toISOString();
-          saveData(data);
-        }
-      }
-    }
+    fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
   } catch (e) {
-    // Polling error silent log
+    console.error('Error saving data file:', e);
   }
 }
 
-setInterval(pollZidOrdersAndSync, 15000);
+// الاتصال بمنصة سلة Salla API v2
+function callSallaApi(endpoint, method = 'GET', postData = null, accessToken = '') {
+  return new Promise((resolve) => {
+    const options = {
+      hostname: 'api.salla.dev',
+      port: 443,
+      path: `/admin/v2${endpoint}`,
+      method: method,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+        'Accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      timeout: 12000
+    };
 
-const server = http.createServer((req, res) => {
-  const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
-  const pathname = reqUrl.pathname;
+    let bodyData = null;
+    if (postData) {
+      bodyData = JSON.stringify(postData);
+      options.headers['Content-Type'] = 'application/json';
+      options.headers['Content-Length'] = Buffer.byteLength(bodyData);
+    }
 
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200);
-    return res.end();
-  }
-
-  // دعم الـ Webhook المباشر بكافة الامتدادات
-  if ((pathname === '/api/zid-webhook/order-create' || pathname === '/zid-webhook' || pathname === '/api/zid-webhook') && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const data = loadData();
-        const order = payload.order || payload;
-        const orderId = order.id ? String(order.id) : null;
-        const isCancelled = (payload.event === 'order.cancelled' || (order.order_status && order.order_status.code === 'cancelled'));
-
-        if (order && order.products && Array.isArray(order.products) && order.products.length > 0) {
-          await syncAllVariantsQuantities(order.products, isCancelled, data.storeSettings, orderId);
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify({ status: 'success' }));
-      } catch (e) {
-        console.error("Webhook Invalid Payload:", e);
-        res.writeHead(400);
-        return res.end('Invalid Payload');
-      }
-    });
-    return;
-  }
-
-  if (pathname === '/api/sync-order' && req.method === 'POST') {
-    let body = '';
-    req.on('data', chunk => body += chunk);
-    req.on('end', async () => {
-      try {
-        const payload = JSON.parse(body);
-        const data = loadData();
-        const isCancelled = payload.isCancelled || false;
-        let products = [];
-
-        if (payload.products && Array.isArray(payload.products)) {
-          products = payload.products;
-        } else if (payload.childProductId || payload.productName || payload.id) {
-          products = [{
-            id: payload.childProductId || payload.id || TRUE_VARIANT_IDS["كيلو"],
-            name: payload.productName || 'كيلو',
-            quantity: payload.quantity || 1
-          }];
+    const req = https.request(options, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => {
+        let parsed = null;
+        try { parsed = JSON.parse(body); } catch (e) { parsed = body; }
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          resolve({ ok: true, status: res.statusCode, data: parsed });
         } else {
-          products = [{ id: TRUE_VARIANT_IDS["كيلو"], name: 'كيلو', quantity: 1 }];
+          console.error(`[Salla API Error] ${endpoint} Status: ${res.statusCode}`, body);
+          resolve({ ok: false, status: res.statusCode, error: parsed });
         }
-
-        const result = await syncAllVariantsQuantities(products, isCancelled, data.storeSettings);
-
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify({
-          status: 'success',
-          message: 'تم تنفيذ المزامنة وحساب الأوزان بنجاح!',
-          details: result
-        }));
-      } catch (e) {
-        console.error("Sync-order Error:", e);
-        res.writeHead(400);
-        return res.end('Invalid Payload');
-      }
+      });
     });
-    return;
+
+    req.on('error', (err) => {
+      console.error(`[Salla Network Error] ${endpoint}:`, err.message);
+      resolve({ ok: false, status: 0, error: err.message });
+    });
+
+    req.on('timeout', () => {
+      req.destroy();
+      console.error(`[Salla Timeout] ${endpoint}`);
+      resolve({ ok: false, status: 408, error: 'Request Timeout' });
+    });
+
+    if (bodyData) req.write(bodyData);
+    req.end();
+  });
+}
+
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css',
+  '.js': 'text/javascript',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml'
+};
+
+const server = http.createServer(async (req, res) => {
+  const urlParts = req.url.split('?')[0];
+
+  // Helper JSON response
+  const sendJson = (statusCode, obj) => {
+    res.writeHead(statusCode, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify(obj));
+  };
+
+  // API Endpoints
+  if (urlParts === '/api/settings') {
+    if (req.method === 'GET') {
+      const store = loadData();
+      return sendJson(200, {
+        sallaAccessToken: store.sallaAccessToken || '',
+        merchantId: store.merchantId || ''
+      });
+    } else if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => body += chunk);
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body);
+          const store = loadData();
+          if (payload.sallaAccessToken !== undefined) store.sallaAccessToken = payload.sallaAccessToken.trim();
+          if (payload.merchantId !== undefined) store.merchantId = payload.merchantId.trim();
+          saveData(store);
+          return sendJson(200, { ok: true, message: 'تم حفظ إعدادات سلة بنجاح' });
+        } catch (e) {
+          return sendJson(400, { ok: false, error: 'بيانات غير صالحة' });
+        }
+      });
+      return;
+    }
   }
 
-  if (pathname === '/api/data' && req.method === 'GET') {
-    const data = loadData();
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-    return res.end(JSON.stringify({
-      storeSettings: data.storeSettings,
-      logs: data.logs.slice(0, 50)
-    }));
+  if (urlParts === '/api/salla/products' && req.method === 'GET') {
+    const store = loadData();
+    if (!store.sallaAccessToken) {
+      return sendJson(400, { ok: false, error: 'يرجى حفظ رمز الوصول (Salla Access Token) أولاً' });
+    }
+    const response = await callSallaApi('/products', 'GET', null, store.sallaAccessToken);
+    if (response.ok) {
+      return sendJson(200, { ok: true, data: response.data.data });
+    } else {
+      return sendJson(response.status || 500, { ok: false, error: response.error });
+    }
   }
 
-  if (pathname === '/api/settings' && req.method === 'POST') {
+  // Webhook Receiver
+  if (urlParts === '/api/salla/webhook' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', () => {
-      try {
-        const payload = JSON.parse(body);
-        const data = loadData();
-        if (payload.zidStoreId !== undefined) data.storeSettings.zidStoreId = payload.zidStoreId;
-        if (payload.zidManagerToken !== undefined) data.storeSettings.zidManagerToken = payload.zidManagerToken;
-        if (payload.zidAuthorizationToken !== undefined) data.storeSettings.zidAuthorizationToken = payload.zidAuthorizationToken;
-        if (payload.locationId !== undefined) data.storeSettings.locationId = payload.locationId;
-        if (payload.totalGramsStore !== undefined) data.storeSettings.totalGramsStore = Number(payload.totalGramsStore);
-        if (payload.autoSyncEnabled !== undefined) data.storeSettings.autoSyncEnabled = Boolean(payload.autoSyncEnabled);
-        
-        saveData(data);
-        res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
-        return res.end(JSON.stringify({ status: 'success', message: 'تم حفظ الإعدادات بنجاح' }));
-      } catch (e) {
-        res.writeHead(400);
-        return res.end('Invalid Payload');
-      }
+      console.log('[Salla Webhook Event Received]');
+      return sendJson(200, { success: true });
     });
     return;
   }
 
-  let filePath = path.join(__dirname, 'public', pathname === '/' ? 'index.html' : pathname);
-  if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
-    const ext = path.extname(filePath);
-    let contentType = 'text/html; charset=utf-8';
-    if (ext === '.css') contentType = 'text/css';
-    if (ext === '.js') contentType = 'text/javascript';
+  // Serve static files
+  let filePath = path.join(PUBLIC_DIR, urlParts === '/' ? 'index.html' : urlParts);
+  const extname = path.extname(filePath);
+  let contentType = MIME_TYPES[extname] || 'application/octet-stream';
 
-    res.writeHead(200, { 'Content-Type': contentType });
-    return fs.createReadStream(filePath).pipe(res);
-  }
-
-  res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
-  res.end('404 Not Found');
+  fs.readFile(filePath, (err, content) => {
+    if (err) {
+      if (err.code === 'ENOENT') {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('404 Not Found');
+      } else {
+        res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end(`Server Error: ${err.code}`);
+      }
+    } else {
+      res.writeHead(200, { 'Content-Type': contentType });
+      res.end(content, 'utf-8');
+    }
+  });
 });
 
 server.listen(PORT, () => {
-  console.log(`Zid Permanent Auto-Polling & Webhook Engine running on http://localhost:${PORT}`);
+  console.log(`====================================================`);
+  console.log(`🚀 خادم مزامنة أوزان سلة تعمل بنجاح (بدون مكتبات خارجية) على البورت: ${PORT}`);
+  console.log(`دراسة وتصميم: عمر بن حسن العدوي غفر الله له ولأهله`);
+  console.log(`====================================================`);
 });

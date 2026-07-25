@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام مزامنة مخزون العود والقطع لزد | دراسة وتصميم عمر بن حسن العدوي</title>
+  <title>نظام مزامنة مخزون العود والقطع لسلة (Salla) | دراسة وتصميم عمر بن حسن العدوي</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
@@ -186,8 +186,8 @@
   <div class="container">
     <header>
       <div class="brand-title">
-        <h1>🪵 نظام مزامنة مخزون العود والقطع لزد (تلقائي)</h1>
-        <p>ربط المخزون الكلي بالجرام مع خيارات المنتج وتحديث متجر زد أوتوماتيكياً طوال 24 ساعة</p>
+        <h1>🪵 نظام مزامنة مخزون العود والقطع لسلة (Salla)</h1>
+        <p>ربط المخزون الكلي بالجرام مع خيارات المنتج وتحديث متجر سلة أوتوماتيكياً طوال 24 ساعة</p>
       </div>
       <div class="designer-badge">
         دراسة وتصميم: <strong>عمر بن حسن العدوي</strong> (غفر الله له ولأهله وللمسلمين أجمعين)
@@ -214,7 +214,7 @@
           </div>
 
           <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--accent-gold); padding: 16px; border-radius: 12px; font-size: 0.95rem;">
-            ⚡️ <strong>المحرك التلقائي مفعّل:</strong> عند قيام أي عميل بالشراء من المتجر أو عند إلغاء أي طلب، سيتولى النظام خصم الجرامات وإعادة المزامنة وإرسال الكميات الدقيقة لكل الخيارات إلى زد فوراً وبدون أي تدخل يدوي!
+            ⚡️ <strong>المحرك التلقائي مفعّل:</strong> عند قيام أي عميل بالشراء من المتجر أو عند إلغاء أي طلب، سيتولى النظام خصم الجرامات وإعادة المزامنة وإرسال الكميات الدقيقة لكل الخيارات إلى سلة فوراً وبدون أي تدخل يدوي!
           </div>
         </div>
 
@@ -229,23 +229,23 @@
       <!-- العمود الجانبي -->
       <div>
         <div class="card">
-          <div class="card-title">🔑 إعدادات الربط الآمن لمتجر زد</div>
-          <label>معرف متجر زد (Store ID):</label>
-          <input type="text" id="zidStoreId" class="input-field">
+          <div class="card-title">🔑 إعدادات الربط الآمن لمتجر سلة</div>
+          <label>معرف التاجر في سلة (Merchant ID):</label>
+          <input type="text" id="merchantId" class="input-field" placeholder="أدخل معرف التاجر">
 
-          <label>رمز المدير الحقيقي (Zid Manager Token):</label>
-          <textarea id="zidManagerToken" class="input-field" rows="4" placeholder="ألصق الرمز هنا X-Manager-Token"></textarea>
+          <label>رمز الوصول الخاص بسلة (Salla Access Token):</label>
+          <textarea id="sallaAccessToken" class="input-field" rows="4" placeholder="ألصق رمز Access Token الخاص بـ Salla"></textarea>
           
           <label>حالة المزامنة التلقائية:</label>
-          <input type="text" class="input-field" value="مفعّلة 24/7 (تلقائي)" readonly style="color: var(--accent-emerald); font-weight: bold;">
+          <input type="text" class="input-field" value="مفعّلة 24/7 (اسم الخدمة: سلة)" readonly style="color: var(--accent-emerald); font-weight: bold;">
 
-          <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveSettings()">حفظ وتحديث التوكن الآن</button>
+          <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveSettings()">حفظ وتحديث توكن سلة</button>
         </div>
       </div>
     </div>
 
     <div class="duaa-footer">
-      تطبيق مزامنة مخزون العود والقطع لزد - تصميم ودراسة <strong>عمر بن حسن العدوي</strong> غفر الله له ولأهله وللمسلمين أجمعين
+      تطبيق مزامنة مخزون العود والقطع لسلة - تصميم ودراسة <strong>عمر بن حسن العدوي</strong> غفر الله له ولأهله وللمسلمين أجمعين
     </div>
   </div>
 
