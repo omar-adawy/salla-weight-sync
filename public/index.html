@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام مزامنة مخزون العود والقطع لزد | دراسة وتصميم عمر بن حسن العدوي</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --accent-gold: #f59e0b;
+      --accent-gold-hover: #d97706;
+      --accent-emerald: #10b981;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Tajawal', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      direction: rtl;
+      text-align: right;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid var(--accent-gold);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.15);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .brand-title h1 {
+      font-size: 1.8rem;
+      color: var(--accent-gold);
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-title p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 6px;
+    }
+
+    .designer-badge {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid var(--accent-gold);
+      padding: 8px 16px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      color: var(--accent-gold);
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      .grid-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .card-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: var(--accent-gold);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .weight-overview {
+      background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(30, 41, 59, 0.5) 100%);
+      border: 1px solid var(--accent-emerald);
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .weight-number {
+      font-size: 2.2rem;
+      font-weight: 900;
+      color: var(--accent-emerald);
+    }
+
+    .btn {
+      background-color: var(--accent-gold);
+      color: #000;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn:hover {
+      background-color: var(--accent-gold-hover);
+      transform: translateY(-2px);
+    }
+
+    .input-field {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-top: 6px;
+      margin-bottom: 16px;
+      font-size: 1rem;
+    }
+
+    .logs-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .log-item {
+      padding: 12px;
+      border-bottom: 1px solid var(--card-border);
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .log-time {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 4px;
+    }
+
+    .duaa-footer {
+      text-align: center;
+      margin-top: 40px;
+      padding: 20px;
+      color: var(--accent-gold);
+      border-top: 1px solid var(--card-border);
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <div class="brand-title">
+        <h1>🪵 نظام مزامنة مخزون العود والقطع لزد (تلقائي)</h1>
+        <p>ربط المخزون الكلي بالجرام مع خيارات المنتج وتحديث متجر زد أوتوماتيكياً طوال 24 ساعة</p>
+      </div>
+      <div class="designer-badge">
+        دراسة وتصميم: <strong>عمر بن حسن العدوي</strong> (غفر الله له ولأهله وللمسلمين أجمعين)
+      </div>
+    </header>
+
+    <div class="grid-layout">
+      <!-- العمود الرئيسي -->
+      <div>
+        <div class="card">
+          <div class="card-title">
+            <span>📦 حالة الخزان الكلي لمنتجات العود المتصلة</span>
+          </div>
+
+          <div class="weight-overview">
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.9rem;">المخزون الإجمالي الحالي بالخزان:</div>
+              <div class="weight-number"><span id="totalWeightGrams">10000</span> <span style="font-size: 1rem;">جرام</span></div>
+            </div>
+            <div>
+              <div style="color: var(--text-muted); font-size: 0.9rem;">يساوي بالكيلو:</div>
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--text-main);"><span id="totalWeightKilos">10</span> كيلو</div>
+            </div>
+          </div>
+
+          <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--accent-gold); padding: 16px; border-radius: 12px; font-size: 0.95rem;">
+            ⚡️ <strong>المحرك التلقائي مفعّل:</strong> عند قيام أي عميل بالشراء من المتجر أو عند إلغاء أي طلب، سيتولى النظام خصم الجرامات وإعادة المزامنة وإرسال الكميات الدقيقة لكل الخيارات إلى زد فوراً وبدون أي تدخل يدوي!
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📜 سجل العمليات التلقائية الحية (Live Audit Logs)</div>
+          <div class="logs-list" id="logsList">
+            <!-- تعبئة السجلات -->
+          </div>
+        </div>
+      </div>
+
+      <!-- العمود الجانبي -->
+      <div>
+        <div class="card">
+          <div class="card-title">🔑 إعدادات الربط الآمن لمتجر زد</div>
+          <label>معرف متجر زد (Store ID):</label>
+          <input type="text" id="zidStoreId" class="input-field" readonly>
+          
+          <label>حالة المزامنة التلقائية:</label>
+          <input type="text" class="input-field" value="مفعّلة 24/7 (تلقائي)" readonly style="color: var(--accent-emerald); font-weight: bold;">
+
+          <button class="btn" style="width: 100%;" onclick="loadData()">تحديث القراءة الآن</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="duaa-footer">
+      تطبيق مزامنة مخزون العود والقطع لزد - تصميم ودراسة <strong>عمر بن حسن العدوي</strong> غفر الله له ولأهله وللمسلمين أجمعين
+    </div>
+  </div>
+
+  <script>
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data');
+        const data = await res.json();
+        
+        const totalGrams = data.storeSettings.totalGramsStore || 10000;
+        document.getElementById('totalWeightGrams').innerText = totalGrams.toLocaleString();
+        document.getElementById('totalWeightKilos').innerText = (totalGrams / 1000).toFixed(2);
+        document.getElementById('zidStoreId').value = data.storeSettings.zidStoreId || '1082333';
+
+        const logsDiv = document.getElementById('logsList');
+        logsDiv.innerHTML = '';
+        if (data.logs && data.logs.length > 0) {
+          data.logs.forEach(l => {
+            const dt = new Date(l.timestamp).toLocaleTimeString('ar-SA');
+            logsDiv.innerHTML += `
+              <div class="log-item">
+                <div>${l.message}</div>
+                <div class="log-time">${dt}</div>
+              </div>
+            `;
+          });
+        } else {
+          logsDiv.innerHTML = '<div style="color: var(--text-muted);">لا توجد سجلات حالياً، المحرك يعمل بالخلفية...</div>';
+        }
+      } catch (err) {
+        console.error("خطأ في جلب البيانات:", err);
+      }
+    }
+
+    setInterval(loadData, 3000);
+    loadData();
+  </script>
+</body>
+</html>
