@@ -85,7 +85,7 @@ function loadData() {
     const initialData = {
       storeSettings: {
         zidStoreId: "1082333",
-        zidManagerToken: "eyJpdiI6IktVb3dBNk5QNjl1c2pxU2F0SWdIV3c9PSIsInZhbHVlIjoiL0RXUUUvZXZ3Ti9VNitTVUlwbEpJU2FFaU9HQlkzaHBURXo2am5mYS9qakt1RnBDbTNBZm1meDlXTU11VWZVdFMxWTRGWjgrYTNyTGtXbFg2cURqK2VKeE9pZjl2akJ5ZDBqSHVFZE5IMUowZFdXOG4xTVg0SVk1VEFjeWY4Q0w4UXV1QWZXNnZuQ2FBRW1TZzB2ZDlKUG9GTHBjaHhlaDZKdnpQOWxHV2NKR2NIM25KT2hGZXpZVWlLeEpyTlg3N0dLbERLZGJXK1NLMHJYMm03Q0VDcGVKWlJOVkN4OHl5ZDFpZFhKb1pKdnYvSG5IZ0xOMlBKS2ZHNmdzOGdtUFd3bllzUUh5REIzeWhYQkdtbkduNk1sRjhnS0syWXQxNnRZRjgvR3c9PSIsIm1hYyI6IjA2OThmMjBiNDk3YTgxNWRmYzdhY2U4NzVkODQxYTFhZWM5YWVhMjZhMTdhYzRhN2RlYmNiOTk1OWZlODUyMzgiLCJ0YWciOiIifQ==",
+        zidManagerToken: "eyJpdiI6Imw3TFF6eDhtVlBnL1o2bnJDMVFqeWc9PSIsInZhbHVlIjoiY2pJaWFKTFVpUXo5WTZDM3FQOHc5eE5qNTZwMmN2SkRYQ2E2cXFqLzgxVWMyYUZKZm9wOEExb2tKdHshNDR4UW50dGR6SlpjZGtzd1JXVVZkcDZ5eGFYbTNiTGpadnc5bDVzdUdXSExISklpeWMvTGdFRS9JVXZjUytibGhvbGhCZkxRQnVnclRBeVN4dGtUdWtDS3d3S3NuamdEQUwrREHBRE9yTFJXbFVvNlAyc2syNVRDcVVLR213VUpEbnZxTXBoaXpjbWlBbG45OEc4MWhQRnJ1elZTdUpxaHpJL0hoOW9zcmNaNHhrL1NraUs2RVR3aXhIWHl5SVAwRXd5UlRmcnYzREE3U3JST1FqVDFjbHRFVWc9PSIsIm1hYyI6ImZjMTdiNDMzZDA1MjZhZjdmZjA3MjQwOGJjYTk0Yjg4MjEwNTQxNmQ4OTUzYmU5NmQ5YWM0ZmZlYTYwYmMyMmIiLCJ0YWciOiIifQ==",
         autoSyncEnabled: true,
         lastProcessedOrderId: null,
         lastProcessedOrderStatus: null,
@@ -103,7 +103,7 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-// دالة الخصم والمزامنة لجميع الأوزان ككتلة واحدة مخصومة أو مسترجعة
+// الدالة المركزية المباشرة لتحديث كافة الأوزان والخيارات
 async function syncAllVariantsQuantities(orderedChildProductId, quantityChange, isCancellation, storeSettings) {
   const data = loadData();
   
@@ -153,6 +153,47 @@ async function syncAllVariantsQuantities(orderedChildProductId, quantityChange, 
   saveData(data);
 }
 
+// الاستطلاع التلقائي المستمر للطلبات كل 15 ثانية (Continuous Auto-Polling Engine)
+async function pollZidOrdersAndSync() {
+  try {
+    const data = loadData();
+    if (!data.storeSettings.autoSyncEnabled || !data.storeSettings.zidManagerToken) return;
+
+    const res = await callZidGet('/v1/managers/store/orders?page=1', data.storeSettings);
+    if (res && res.orders && res.orders.length > 0) {
+      const latestOrder = res.orders[0];
+      const orderId = latestOrder.id;
+      const orderStatus = latestOrder.order_status ? latestOrder.order_status.code : null;
+
+      // عند استلام طلب جديد لم ينفذ بعد
+      if (data.storeSettings.lastProcessedOrderId !== orderId) {
+        data.storeSettings.lastProcessedOrderId = orderId;
+        data.storeSettings.lastProcessedOrderStatus = orderStatus;
+        saveData(data);
+
+        if (latestOrder.products && latestOrder.products.length > 0) {
+          const firstItem = latestOrder.products[0];
+          await syncAllVariantsQuantities(firstItem.id, firstItem.quantity || 1, false, data.storeSettings);
+        }
+      } 
+      // عند إلغاء طلب سابق
+      else if (data.storeSettings.lastProcessedOrderStatus !== 'cancelled' && orderStatus === 'cancelled') {
+        data.storeSettings.lastProcessedOrderStatus = 'cancelled';
+        saveData(data);
+
+        if (latestOrder.products && latestOrder.products.length > 0) {
+          const firstItem = latestOrder.products[0];
+          await syncAllVariantsQuantities(firstItem.id, firstItem.quantity || 1, true, data.storeSettings);
+        }
+      }
+    }
+  } catch (e) {
+    console.error("Polling Error:", e);
+  }
+}
+
+setInterval(pollZidOrdersAndSync, 15000);
+
 const server = http.createServer((req, res) => {
   const reqUrl = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
   const pathname = reqUrl.pathname;
@@ -166,7 +207,31 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // API المزامنة اليدوية والتلقائية الفورية من لوحة التحكم أو التطبيق
+  // دعم الـ Webhook المباشر بكافة الامتدادات
+  if ((pathname === '/api/zid-webhook/order-create' || pathname === '/zid-webhook') && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => body += chunk);
+    req.on('end', async () => {
+      try {
+        const payload = JSON.parse(body);
+        const data = loadData();
+        const order = payload.order || payload;
+        const isCancelled = (payload.event === 'order.cancelled' || (order.order_status && order.order_status.code === 'cancelled'));
+
+        if (order && order.products && order.products.length > 0) {
+          const item = order.products[0];
+          await syncAllVariantsQuantities(item.id, item.quantity || 1, isCancelled, data.storeSettings);
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ status: 'success' }));
+      } catch (e) {
+        res.writeHead(400);
+        return res.end('Invalid Payload');
+      }
+    });
+    return;
+  }
+
   if (pathname === '/api/sync-order' && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
@@ -235,5 +300,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Zid Robust Instant Sync Engine running on http://localhost:${PORT}`);
+  console.log(`Zid Permanent Auto-Polling & Webhook Engine running on http://localhost:${PORT}`);
 });
