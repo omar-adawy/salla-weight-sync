@@ -17,6 +17,16 @@ const TRUE_VARIANT_IDS = {
   "كيلو": "03271e53-0eea-4d0b-87eb-0bd6778e854d"
 };
 
+// خريطة المعرف العكسية لسرعة التعرف المباشر
+const VARIANT_ID_TO_WEIGHT = {
+  "d0a11350-92c9-4d7f-b8ee-45c2670c19cc": 12,
+  "4b145c6e-72bb-4f62-9b14-f424e5bb33ed": 28,
+  "5bf6ecd5-d54c-4d3c-aa38-7d86f930942b": 125,
+  "cfcd318e-ee60-4859-ac26-2e44348586ad": 250,
+  "eb8c6bbf-811e-45b8-9907-54e0734d7d61": 500,
+  "03271e53-0eea-4d0b-87eb-0bd6778e854d": 1000
+};
+
 function buildZidHeaders(storeSettings) {
   const headers = {
     'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
@@ -158,10 +168,31 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
 }
 
-// دالة التعرف على وزن وحدة الصنف بالجرام
-function detectUnitWeightGrams(name) {
-  if (!name || typeof name !== 'string') return null;
-  const n = name.trim();
+// دالة التعرف الشاملة على وزن وحدة الصنف بالجرام من الصنف أو المعرف أو الخصائص
+function detectUnitWeightGrams(item) {
+  if (!item) return null;
+
+  // 1. الفحص المباشر عبر معرف الخيار المسجل (ID Match)
+  const itemId = item.id || item.product_id || item.variant_id;
+  if (itemId && VARIANT_ID_TO_WEIGHT[itemId]) {
+    return VARIANT_ID_TO_WEIGHT[itemId];
+  }
+
+  // 2. تجميع كافة النصوص المتاحة للصنف من زد (الاسم، اسم المتغير، خيارات الخيار المحنونة، الخصائص)
+  let text = '';
+  if (typeof item === 'string') text = item;
+  else {
+    text += ' ' + (item.name || '');
+    text += ' ' + (item.variant_name || '');
+    text += ' ' + (item.sku || '');
+    if (item.selected_product_option) text += ' ' + (item.selected_product_option.name || '');
+    if (item.attributes && Array.isArray(item.attributes)) {
+      text += ' ' + item.attributes.map(a => (a.value || a.name || '')).join(' ');
+    }
+  }
+
+  const n = text.trim();
+  if (!n) return null;
 
   if (n.includes('نصف كيلو') || n.includes('نص كيلو') || n.includes('1/2 كيلو')) return 500;
   if (n.includes('ربع كيلو') || n.includes('1/4 كيلو')) return 250;
@@ -185,28 +216,26 @@ async function syncAllVariantsQuantities(productsList, isCancellation, storeSett
   const itemsProcessed = [];
 
   for (const item of productsList) {
-    let unitWeight = null;
-    let productName = item.name || '';
+    let unitWeight = detectUnitWeightGrams(item);
 
-    if (!productName && item.id) {
+    if (!unitWeight && item.id) {
       const details = await callZidGet(`/v1/products/${item.id}/`, storeSettings);
-      if (details.ok && details.data && details.data.name) {
-        productName = details.data.name;
+      if (details.ok && details.data) {
+        unitWeight = detectUnitWeightGrams(details.data);
       }
     }
 
-    unitWeight = detectUnitWeightGrams(productName);
-
     if (!unitWeight) {
-      console.warn(`[Warning] Could not resolve unit weight for product "${productName}" (ID: ${item.id}). Defaulting to 0g deduction to prevent stock corruption.`);
-      itemsProcessed.push({ name: productName || item.id, qty: item.quantity || 1, grams: 0, status: 'UNRESOLVED_WEIGHT' });
+      const pName = item.name || item.variant_name || item.id;
+      console.warn(`[Warning] Could not resolve unit weight for product "${pName}". Skipping deduction to prevent corruption.`);
+      itemsProcessed.push({ name: pName, qty: item.quantity || 1, grams: 0, status: 'UNRESOLVED_WEIGHT' });
       continue;
     }
 
     const qty = item.quantity || 1;
     const itemGrams = unitWeight * qty;
     totalOrderGrams += itemGrams;
-    itemsProcessed.push({ name: productName, qty: qty, grams: itemGrams, unitWeight: unitWeight, status: 'SUCCESS' });
+    itemsProcessed.push({ name: item.name || item.id, qty: qty, grams: itemGrams, unitWeight: unitWeight, status: 'SUCCESS' });
   }
 
   if (totalOrderGrams > 0) {
@@ -247,8 +276,8 @@ async function syncAllVariantsQuantities(productsList, isCancellation, storeSett
   const actionText = isCancellation ? `🔄 تم استرجاع ${totalOrderGrams} جرام` : `⚡️ تم خصم ${totalOrderGrams} جرام`;
   const orderRefText = orderId ? ` للطلب #${orderId}` : '';
   const statusSummary = failCount === 0 
-    ? `تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%.` 
-    : `تم تحديث ${successCount} خياراً وفشل ${failCount} خيار (يرجى التحقق من التوكين و Location ID).`;
+    ? `تم تعديل وتحديث كافة خيارات زد الـ 6 تلقائياً بنجاح 100%.` 
+    : `تم تحديث ${successCount} خياراً وفشل ${failCount} خيار.`;
 
   data.logs.unshift({
     id: `log-${Date.now()}`,
@@ -302,7 +331,7 @@ async function pollZidOrdersAndSync() {
       }
     }
   } catch (e) {
-    console.error("Polling Error:", e);
+    // Polling error silent log
   }
 }
 
@@ -321,8 +350,8 @@ const server = http.createServer((req, res) => {
     return res.end();
   }
 
-  // دعم الـ Webhook المباشر
-  if ((pathname === '/api/zid-webhook/order-create' || pathname === '/zid-webhook') && req.method === 'POST') {
+  // دعم الـ Webhook المباشر بكافة الامتدادات
+  if ((pathname === '/api/zid-webhook/order-create' || pathname === '/zid-webhook' || pathname === '/api/zid-webhook') && req.method === 'POST') {
     let body = '';
     req.on('data', chunk => body += chunk);
     req.on('end', async () => {
@@ -359,9 +388,9 @@ const server = http.createServer((req, res) => {
 
         if (payload.products && Array.isArray(payload.products)) {
           products = payload.products;
-        } else if (payload.childProductId || payload.productName) {
+        } else if (payload.childProductId || payload.productName || payload.id) {
           products = [{
-            id: payload.childProductId || TRUE_VARIANT_IDS["كيلو"],
+            id: payload.childProductId || payload.id || TRUE_VARIANT_IDS["كيلو"],
             name: payload.productName || 'كيلو',
             quantity: payload.quantity || 1
           }];
