@@ -231,12 +231,15 @@
         <div class="card">
           <div class="card-title">🔑 إعدادات الربط الآمن لمتجر زد</div>
           <label>معرف متجر زد (Store ID):</label>
-          <input type="text" id="zidStoreId" class="input-field" readonly>
+          <input type="text" id="zidStoreId" class="input-field">
+
+          <label>رمز المدير الحقيقي (Zid Manager Token):</label>
+          <textarea id="zidManagerToken" class="input-field" rows="4" placeholder="ألصق الرمز هنا X-Manager-Token"></textarea>
           
           <label>حالة المزامنة التلقائية:</label>
           <input type="text" class="input-field" value="مفعّلة 24/7 (تلقائي)" readonly style="color: var(--accent-emerald); font-weight: bold;">
 
-          <button class="btn" style="width: 100%;" onclick="loadData()">تحديث القراءة الآن</button>
+          <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveSettings()">حفظ وتحديث التوكن الآن</button>
         </div>
       </div>
     </div>
@@ -256,6 +259,9 @@
         document.getElementById('totalWeightGrams').innerText = totalGrams.toLocaleString();
         document.getElementById('totalWeightKilos').innerText = (totalGrams / 1000).toFixed(2);
         document.getElementById('zidStoreId').value = data.storeSettings.zidStoreId || '1082333';
+        if (data.storeSettings.zidManagerToken) {
+          document.getElementById('zidManagerToken').value = data.storeSettings.zidManagerToken;
+        }
 
         const logsDiv = document.getElementById('logsList');
         logsDiv.innerHTML = '';
@@ -277,7 +283,21 @@
       }
     }
 
-    setInterval(loadData, 3000);
+    async function saveSettings() {
+      const zidStoreId = document.getElementById('zidStoreId').value;
+      const zidManagerToken = document.getElementById('zidManagerToken').value.trim();
+
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ zidStoreId, zidManagerToken })
+      });
+
+      alert("تم حفظ وتحديث رمز مدير زد السحابي بنجاح!");
+      loadData();
+    }
+
+    setInterval(loadData, 5000);
     loadData();
   </script>
 </body>
