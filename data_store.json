@@ -1,7 +1,7 @@
 {
   "storeSettings": {
     "zidStoreId": "1082333",
-    "zidManagerToken": "eyJpdiI6Ii82bURkZ3NabWdyWEJSeGo1UnhJYUE9PSIsInZhbHVlIjoiaXlwdHhyMEdUeWhkWXQ1cnpJOGJqVVVxUGJQaUZNbXU1M3lmeDlyb3puZXA5bGloZmNMS1JxTCtLTnZVQjBtaGhSeE13aldCbGQzRnB5ZDBqSDVFZE5IMUowZFdXOG4xTVg0SVk1VEFjeWY4Q0w4UXV1QWZXNnZuQ2FBRW1TZzB2ZDlKUG9GTHBjaHhlaDZKdnpQOWxHV2NKR2NIM25KT2hGZXpZVWlLeEpyTlg3N0dLbERLZGJXK1NLMHJYMm03Q0VDcGVKWlJOVkN4OHl5ZDFpZFhKb1pKdnYvSG5IZ0xOMlBKS2ZHNmdzOGdtUFd3bllzUUh5REIzeWhYQkdtbkduNk1sRjhnS0syWXQxNnRZRjgvR3c9PSIsIm1hYyI6Ijk2M2RiNTk2NDUzYTQwNjQyZTU0ZTUxOWE2NjQ0ZjI5NWYwOTU4YzgwZGVkY2U4MzhjNzA0ZDg3YWNjZWYwNTEiLCJ0YWciOiIifQ==",
+    "zidManagerToken": "eyJpdiI6Ilc1NStFVktJNUNiblIwMzFSZGRzRGc9PSIsInZhbHVlIjoiakhhdUo5UmdBUU85bjNNNVJ3UFQ5SyttdW51bmMybnl4RGdpZVg3TW5CZ2p0TGZISUNiZXZpYUM5R24veURIUXZJZktuY01VQm5BYklJckp6SGJIS3ZycExrVDlXdi9jNXJ1VnFOR2l2WDZIdngxdXdWYlFmS0VGSjNjdlVrNlRpS2FKeWNxd0FFZE1LREVMNDNvMTFEWW5WQ0lzNVYrUlUyTFlmRXFEbFNUdkpEeW02OTM4Mi9rN0RkRDJqcGp0Q0doeVBONzhza3Z3Rmt0akdJQXlDTlhnR1FodWRib1BaVVdhQmpXTGs5OWF2ZkhQa3gwckpDVkRBb1U3S215QnlMTnQzNHo3SFRRckdpbEk5eExzNFE9PSIsIm1hYyI6IjNhMGJjYzE0MjNjZGE4MzM3YzQ0YjlmODA0NzBlNmQyNmQ2YjRkNjQ5ZjY4ZjdhNjkxNmE5YzA3YzAzZDA5MTgiLCJ0YWciOiIifQ==",
     "zidAuthorizationToken": "",
     "autoSyncEnabled": true,
     "totalGramsStore": 9750,
@@ -62,94 +62,10 @@
   ],
   "logs": [
     {
-      "id": "log-1784970227679",
-      "timestamp": "2026-07-25T09:03:47.679Z",
+      "id": "log-1784970226815",
+      "timestamp": "2026-07-25T09:03:46.815Z",
       "type": "AUTO_ORDER_DEDUCT",
       "message": "⚡️ تم خصم 250 جرام. المخزون المتبقي حالياً بالخزان: 9750 جرام. تم تعديل وتحديث كافة خيارات زد الـ 6 تلقائياً بنجاح 100%."
-    },
-    {
-      "id": "log-1784970197815",
-      "timestamp": "2026-07-25T09:03:17.815Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم خصم 1000 جرام. المخزون المتبقي حالياً بالخزان: 9000 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784969974780",
-      "timestamp": "2026-07-25T08:59:34.780Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم خصم 0 جرام. المخزون المتبقي حالياً بالخزان: 10000 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784969965450",
-      "timestamp": "2026-07-25T08:59:25.450Z",
-      "type": "AUTO_CANCEL_RESTORE",
-      "message": "🔄 تم استرجاع 1000 جرام. المخزون المتبقي حالياً بالخزان: 11000 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784969815321",
-      "timestamp": "2026-07-25T08:56:55.321Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم خصم 1000 جرام. المخزون المتبقي حالياً بالخزان: 9000 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784969721524",
-      "timestamp": "2026-07-25T08:55:21.524Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم خصم 1000 جرام. المخزون المتبقي حالياً بالخزان: 9000 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784969173039",
-      "timestamp": "2026-07-25T08:46:13.039Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم خصم 12 جرام. المخزون المتبقي حالياً بالخزان: 9988 جرام. تم تحديث كافة خيارات زد البالغة 6 خيارات بنجاح 100%."
-    },
-    {
-      "id": "log-1784967135942",
-      "timestamp": "2026-07-25T08:12:15.942Z",
-      "type": "AUTO_CANCEL_RESTORE",
-      "message": "🔄 تم استرجاع 1000 جرام تلقائياً. المخزون المتبقي الحالي بالخزان: 10000 جرام. تم تعديل وإرسال كافة خيارات زد بنجاح!"
-    },
-    {
-      "id": "log-1784966997139",
-      "timestamp": "2026-07-25T08:09:57.139Z",
-      "type": "AUTO_ORDER_DEDUCT",
-      "message": "⚡️ تم الخصم التلقائي لـ 1000 جرام. المخزون المتبقي الحالي بالخزان: 9000 جرام. تم تعديل وإرسال كافة خيارات زد بنجاح!"
-    },
-    {
-      "id": "log-1784959755222",
-      "timestamp": "2026-07-25T06:09:15.222Z",
-      "type": "WEIGHT_UPDATE",
-      "message": "تم تحديث المخزون الكلي لمنتج [عود تايجر فاخر (طبيعي محوّك)] من 4940 جرام إلى 1000 جرام."
-    },
-    {
-      "id": "log-1784959715369",
-      "timestamp": "2026-07-25T06:08:35.369Z",
-      "type": "SETTINGS",
-      "message": "تم تحديث إعدادات الربط والرموز البرمجية لمنصة زد."
-    },
-    {
-      "id": "log-1784959677290",
-      "timestamp": "2026-07-25T06:07:57.290Z",
-      "type": "SETTINGS",
-      "message": "تم تحديث إعدادات الربط والرموز البرمجية لمنصة زد."
-    },
-    {
-      "id": "log-1784955761630",
-      "timestamp": "2026-07-25T05:02:41.630Z",
-      "type": "ORDER_SYNC",
-      "message": "تم الشراء: طلب 5 من [كيلو كامل (1)] (1000 جرام/وحدة). تم خصم إجمالي 5000 جرام. المتبقي في الخزان: 4940 جرام."
-    },
-    {
-      "id": "log-1784955753099",
-      "timestamp": "2026-07-25T05:02:33.099Z",
-      "type": "ORDER_SYNC",
-      "message": "تم الشراء: طلب 5 من [تولة] (12 جرام/وحدة). تم خصم إجمالي 60 جرام. المتبقي في الخزان: 9940 جرام."
-    },
-    {
-      "id": "log-1",
-      "timestamp": "2026-07-25T05:00:07.086Z",
-      "type": "SYSTEM",
-      "message": "تم تشغيل نظام مزامنة مخزون العود والقطع بنجاح بدون مكتبات خارجية."
     }
   ]
 }
