@@ -229,17 +229,20 @@
       <!-- العمود الجانبي -->
       <div>
         <div class="card">
-          <div class="card-title">🔑 إعدادات الربط الآمن لمتجر سلة</div>
+          <div class="card-title">🔑 إعدادات الربط لمتجر سلة و Google Sheet</div>
+          <label>رابط تفعيل Google Sheet (Web App URL):</label>
+          <input type="text" id="googleSheetUrl" class="input-field" placeholder="https://script.google.com/macros/s/.../exec">
+
           <label>معرف التاجر في سلة (Merchant ID):</label>
           <input type="text" id="merchantId" class="input-field" placeholder="أدخل معرف التاجر">
 
           <label>رمز الوصول الخاص بسلة (Salla Access Token):</label>
-          <textarea id="sallaAccessToken" class="input-field" rows="4" placeholder="ألصق رمز Access Token الخاص بـ Salla"></textarea>
+          <textarea id="sallaAccessToken" class="input-field" rows="3" placeholder="ألصق رمز Access Token الخاص بـ Salla"></textarea>
           
-          <label>حالة المزامنة التلقائية:</label>
-          <input type="text" class="input-field" value="مفعّلة 24/7 (اسم الخدمة: سلة)" readonly style="color: var(--accent-emerald); font-weight: bold;">
+          <label>حالة المزامنة المزدوجة (سلة + جوجل شيت):</label>
+          <input type="text" class="input-field" value="مفعّلة 24/7 (سلة + Google Sheet)" readonly style="color: var(--accent-emerald); font-weight: bold;">
 
-          <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveSettings()">حفظ وتحديث توكن سلة</button>
+          <button class="btn" style="width: 100%; margin-top: 10px;" onclick="saveSettings()">حفظ وتحديث الربط بالكامل</button>
         </div>
       </div>
     </div>
