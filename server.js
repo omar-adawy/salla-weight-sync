@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(__dirname, 'data_store.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
 
-// الأوزان بالجرام
+// الأوزان بالجرام للخيارات
 const WEIGHT_MAP = {
   "تولة": 12,
   "أوقية": 28,
@@ -29,7 +29,11 @@ function loadData() {
     sallaAccessToken: '',
     merchantId: '',
     googleSheetUrl: '',
-    totalGrams: 10000,
+    products: {
+      "تايجر": 40000,
+      "دقة": 2000,
+      "مروكي": 5000
+    },
     logs: []
   };
 }
@@ -40,65 +44,6 @@ function saveData(data) {
   } catch (e) {
     console.error('Error saving data file:', e);
   }
-}
-
-// دالة جلب الوزن الإجمالي من رابط Google Sheet / Apps Script Web App
-function fetchWeightFromGoogleSheet(sheetUrl) {
-  return new Promise((resolve) => {
-    if (!sheetUrl || !sheetUrl.startsWith('http')) {
-      return resolve(null);
-    }
-    https.get(sheetUrl, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => {
-        try {
-          const parsed = JSON.parse(body);
-          if (parsed && typeof parsed.totalGrams !== 'undefined') {
-            return resolve(Number(parsed.totalGrams));
-          }
-        } catch (e) {}
-        resolve(null);
-      });
-    }).on('error', (err) => {
-      console.error('[Google Sheet Sync Error]:', err.message);
-      resolve(null);
-    });
-  });
-}
-
-// دالة تحديث وزن جديد في Google Sheet Web App
-function updateWeightToGoogleSheet(sheetUrl, newWeightGrams, logMessage) {
-  return new Promise((resolve) => {
-    if (!sheetUrl || !sheetUrl.startsWith('http')) return resolve(false);
-    
-    const postData = JSON.stringify({
-      totalGrams: newWeightGrams,
-      log: logMessage,
-      timestamp: new Date().toISOString()
-    });
-
-    const urlObj = new URL(sheetUrl);
-    const options = {
-      hostname: urlObj.hostname,
-      port: 443,
-      path: urlObj.pathname + urlObj.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(postData)
-      }
-    };
-
-    const req = https.request(options, (res) => {
-      let body = '';
-      res.on('data', chunk => body += chunk);
-      res.on('end', () => resolve(true));
-    });
-    req.on('error', () => resolve(false));
-    req.write(postData);
-    req.end();
-  });
 }
 
 // الاتصال بـ Salla API v2
@@ -170,7 +115,7 @@ const server = http.createServer(async (req, res) => {
         sallaAccessToken: store.sallaAccessToken || '',
         merchantId: store.merchantId || '',
         googleSheetUrl: store.googleSheetUrl || '',
-        totalGrams: store.totalGrams || 10000,
+        products: store.products || {},
         logs: store.logs || []
       });
     } else if (req.method === 'POST') {
@@ -183,9 +128,9 @@ const server = http.createServer(async (req, res) => {
           if (payload.sallaAccessToken !== undefined) store.sallaAccessToken = payload.sallaAccessToken.trim();
           if (payload.merchantId !== undefined) store.merchantId = payload.merchantId.trim();
           if (payload.googleSheetUrl !== undefined) store.googleSheetUrl = payload.googleSheetUrl.trim();
-          if (payload.totalGrams !== undefined) store.totalGrams = Number(payload.totalGrams);
+          if (payload.products !== undefined) store.products = payload.products;
           saveData(store);
-          return sendJson(200, { ok: true, message: 'تم حفظ الإعدادات ورابط Google Sheet بنجاح' });
+          return sendJson(200, { ok: true, message: 'تم حفظ إعدادات المنتجات والربط بنجاح' });
         } catch (e) {
           return sendJson(400, { ok: false, error: 'بيانات غير صالحة' });
         }
@@ -194,10 +139,10 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  // Webhook Receiver من سلة
+  // Webhook Receiver من سلة لخصم وزن المنتج المحدد
   if (urlParts === '/api/salla/webhook') {
     if (req.method === 'GET') {
-      return sendJson(200, { ok: true, message: 'Salla & Google Sheets Sync Webhook is Active & Ready' });
+      return sendJson(200, { ok: true, message: 'Multi-Product Salla & Google Sheets Sync is Active' });
     }
     if (req.method === 'POST') {
       let body = '';
@@ -208,29 +153,29 @@ const server = http.createServer(async (req, res) => {
           console.log('[Webhook Triggered]:', payload?.event);
           
           const store = loadData();
-          // معالجة استهلاك الجرامات وتحديث Google Sheets وسلة
           if (payload.event === 'order.created' && payload.data?.items) {
-            let deductedGrams = 0;
             payload.data.items.forEach(item => {
               const name = item.name || '';
-              for (const [wName, wGrams] of Object.entries(WEIGHT_MAP)) {
-                if (name.includes(wName)) {
-                  deductedGrams += (wGrams * (item.quantity || 1));
+              // مطابقة اسم العود (تايجر، دقة، مروكي، إلخ)
+              Object.keys(store.products).forEach(prodName => {
+                if (name.includes(prodName)) {
+                  let itemWeightGrams = 0;
+                  for (const [wName, wGrams] of Object.entries(WEIGHT_MAP)) {
+                    if (name.includes(wName)) {
+                      itemWeightGrams = wGrams;
+                      break;
+                    }
+                  }
+                  if (itemWeightGrams > 0) {
+                    const totalDeducted = itemWeightGrams * (item.quantity || 1);
+                    store.products[prodName] = Math.max(0, store.products[prodName] - totalDeducted);
+                    const logMsg = `تم خصم ${totalDeducted}g من عود (${prodName}) لطلب #${payload.data.id}. المتبقي: ${store.products[prodName]}g`;
+                    store.logs.unshift({ timestamp: new Date().toISOString(), message: logMsg });
+                  }
                 }
-              }
+              });
             });
-
-            if (deductedGrams > 0) {
-              store.totalGrams = Math.max(0, store.totalGrams - deductedGrams);
-              const logMsg = `تم خصم ${deductedGrams} جرام لطلب جديد #${payload.data.id}. المتبقي: ${store.totalGrams} جرام`;
-              store.logs.unshift({ timestamp: new Date().toISOString(), message: logMsg });
-              saveData(store);
-
-              // تحديث شيت جوجل أوتوماتيكياً
-              if (store.googleSheetUrl) {
-                await updateWeightToGoogleSheet(store.googleSheetUrl, store.totalGrams, logMsg);
-              }
-            }
+            saveData(store);
           }
         } catch (e) {
           console.error('Webhook error:', e);
@@ -259,7 +204,7 @@ const server = http.createServer(async (req, res) => {
 
 server.listen(PORT, () => {
   console.log(`====================================================`);
-  console.log(`🚀 خادم مزامنة سلة + Google Sheets يعمل بنجاح على البورت: ${PORT}`);
+  console.log(`🚀 خادم مزامنة منتجات العود المتعددة (تايجر، دقة، مروكي) يعمل بنجاح`);
   console.log(`دراسة وتصميم: عمر بن حسن العدوي غفر الله له ولأهله`);
   console.log(`====================================================`);
 });
